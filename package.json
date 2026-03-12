@@ -1,8 +1,8 @@
 {
   "name": "mse-1-aifsd-priyesh-kumar",
   "version": "1.0.0",
-  "description": "",
-  "main": "script.js",
+  "description": "Library Management System for MSE 1",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
