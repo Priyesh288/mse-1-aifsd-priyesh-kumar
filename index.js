@@ -2,110 +2,139 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const Student = require('./model');
+const Book = require('./model');
 
 const app = express();
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json()); // Enable express.json() middleware
 
-// In-Memory Fallback if MongoDB is not running locally
-let useMongoDB = false;
-let fallbackDb = [
-    { _id: '1', name: 'Rahul Sharma', roomNo: '101-A', course: 'B.Tech CSE', status: 'Active', createdAt: new Date() },
-    { _id: '2', name: 'Aman Verma', roomNo: '205-B', course: 'B.Tech ECE', status: 'Active', createdAt: new Date() }
-];
-
-// Database Connection
+// Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, { 
-    serverSelectionTimeoutMS: 3000 // 3 seconds timeout
+    serverSelectionTimeoutMS: 5000 
 })
-    .then(() => {
-        console.log('✅ Connected to MongoDB database (hostelsys)');
-        useMongoDB = true;
-    })
-    .catch((err) => {
-        console.log('⚠️ MongoDB not detected running locally. Using in-memory array for demo purposes so it works instantly.');
-    });
+.then(() => console.log('✅ Connected to MongoDB database'))
+.catch((err) => console.log('⚠️ MongoDB connection error:', err.message));
 
-// --- API Routes ---
+// --- API Endpoints ---
 
-// Get all students (Read)
-app.get('/api/students', async (req, res) => {
+// GET /books/search?title=xyz (Search book by title)
+// NOTE: This must come before /books/:id to avoid matching "search" as an ID
+app.get('/books/search', async (req, res, next) => {
     try {
-        if (useMongoDB) {
-            const students = await Student.find().sort({ createdAt: -1 });
-            return res.status(200).json(students);
-        } else {
-            return res.status(200).json(fallbackDb.sort((a,b) => b.createdAt - a.createdAt));
+        const titleQuery = req.query.title;
+        if (!titleQuery) {
+            return res.status(400).json({ error: 'Search query "title" is required' });
         }
+        
+        // Search by title or author
+        const books = await Book.find({
+            $or: [
+                { title: { $regex: titleQuery, $options: 'i' } },
+                { author: { $regex: titleQuery, $options: 'i' } }
+            ]
+        });
+        return res.status(200).json(books);
     } catch (err) {
-        res.status(500).json({ error: 'Failed to fetch students', details: err.message });
+        next(err);
     }
 });
 
-// Add a new student (Create)
-app.post('/api/students', async (req, res) => {
+// POST /books (Add a new book)
+app.post('/books', async (req, res, next) => {
     try {
-        const { name, roomNo, course, status } = req.body;
-        
-        if (!name || !roomNo || !course) {
-            return res.status(400).json({ error: 'Name, Room No, and Course are required fields.' });
-        }
-
-        if (useMongoDB) {
-            const newStudent = new Student({
-                name,
-                roomNo,
-                course,
-                status: status || 'Active'
-            });
-            const savedStudent = await newStudent.save();
-            return res.status(201).json(savedStudent);
-        } else {
-            const newStudent = {
-                _id: Date.now().toString(),
-                name,
-                roomNo,
-                course,
-                status: status || 'Active',
-                createdAt: new Date()
-            };
-            fallbackDb.push(newStudent);
-            return res.status(201).json(newStudent);
-        }
+        const newBook = new Book(req.body);
+        const savedBook = await newBook.save();
+        return res.status(201).json(savedBook);
     } catch (err) {
-        res.status(500).json({ error: 'Failed to add student', details: err.message });
+        if (err.name === 'ValidationError') {
+            return res.status(400).json({ error: 'Bad Request', details: err.message });
+        }
+        if (err.code === 11000) {
+            return res.status(400).json({ error: 'Bad Request', details: 'ISBN must be unique' });
+        }
+        next(err);
     }
 });
 
-// Delete a student (Delete)
-app.delete('/api/students/:id', async (req, res) => {
+// GET /books (Get all book records)
+app.get('/books', async (req, res, next) => {
     try {
-        const studentId = req.params.id;
-        
-        if (useMongoDB) {
-            const deletedStudent = await Student.findByIdAndDelete(studentId);
-            if (!deletedStudent) {
-                return res.status(404).json({ error: 'Student not found.' });
-            }
-        } else {
-            const initialLength = fallbackDb.length;
-            fallbackDb = fallbackDb.filter(s => s._id !== studentId);
-            if (fallbackDb.length === initialLength) {
-                return res.status(404).json({ error: 'Student not found.' });
-            }
-        }
-        
-        res.status(200).json({ message: 'Student deleted successfully.', id: studentId });
+        const books = await Book.find().sort({ createdAt: -1 });
+        return res.status(200).json(books);
     } catch (err) {
-        res.status(500).json({ error: 'Failed to delete student', details: err.message });
+        next(err);
     }
+});
+
+// GET /books/:id (Get book by ID)
+app.get('/books/:id', async (req, res, next) => {
+    try {
+        const bookId = req.params.id;
+        const book = await Book.findById(bookId);
+        
+        if (!book) {
+            return res.status(404).json({ error: 'Not Found: Book does not exist' });
+        }
+        return res.status(200).json(book);
+    } catch (err) {
+        // If id is invalid format, cast to objectid fails
+        if (err.name === 'CastError') {
+             return res.status(400).json({ error: 'Bad Request: Invalid Book ID format' });
+        }
+        next(err);
+    }
+});
+
+// PUT /books/:id (Update book details)
+app.put('/books/:id', async (req, res, next) => {
+    try {
+        const bookId = req.params.id;
+        const updatedBook = await Book.findByIdAndUpdate(
+            bookId, 
+            req.body, 
+            { new: true, runValidators: true }
+        );
+        
+        if (!updatedBook) {
+            return res.status(404).json({ error: 'Not Found: Book does not exist' });
+        }
+        return res.status(200).json(updatedBook);
+    } catch (err) {
+        if (err.name === 'ValidationError' || err.name === 'CastError') {
+            return res.status(400).json({ error: 'Bad Request', details: err.message });
+        }
+        next(err);
+    }
+});
+
+// DELETE /books/:id (Delete book record)
+app.delete('/books/:id', async (req, res, next) => {
+    try {
+        const bookId = req.params.id;
+        const deletedBook = await Book.findByIdAndDelete(bookId);
+        
+        if (!deletedBook) {
+            return res.status(404).json({ error: 'Not Found: Book does not exist' });
+        }
+        return res.status(200).json({ message: 'Success: Book deleted', id: bookId });
+    } catch (err) {
+        if (err.name === 'CastError') {
+             return res.status(400).json({ error: 'Bad Request: Invalid Book ID format' });
+        }
+        next(err);
+    }
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Unhandled Error:', err.stack);
+    res.status(500).json({ error: 'Server Error', details: err.message });
 });
 
 // Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log(`🚀 API Server running on http://localhost:${PORT}`);
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
 });

@@ -57,94 +57,97 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 10000);
     }
     
-    // Initial fetch of students
-    fetchStudents();
+    // Initial fetch of books
+    fetchBooks();
     
     // Form submit listener
-    const studentForm = document.getElementById('studentForm');
-    if(studentForm) {
-        studentForm.addEventListener('submit', async (e) => {
+    const bookForm = document.getElementById('bookForm');
+    if(bookForm) {
+        bookForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const newStudent = {
-                name: document.getElementById('name').value,
-                roomNo: document.getElementById('roomNo').value,
-                course: document.getElementById('course').value,
+            const newBook = {
+                title: document.getElementById('title').value,
+                author: document.getElementById('author').value,
+                isbn: document.getElementById('isbn').value,
+                genre: document.getElementById('genre').value,
+                publisher: document.getElementById('publisher').value,
+                totalCopies: parseInt(document.getElementById('totalCopies').value) || 1,
                 status: document.getElementById('status').value
             };
 
             try {
-                const response = await fetch('http://localhost:5000/api/students', {
+                const response = await fetch('http://localhost:5000/books', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(newStudent)
+                    body: JSON.stringify(newBook)
                 });
 
                 if (response.ok) {
-                    studentForm.reset();
+                    bookForm.reset();
                     toggleForm();
-                    fetchStudents(); // Refresh list
+                    fetchBooks(); // Refresh list
                 } else {
                     const data = await response.json();
-                    alert(data.error || 'Failed to add student');
+                    alert(data.error || 'Failed to add book');
                 }
             } catch (err) {
                 console.error(err);
-                alert('Server error while adding student');
+                alert('Server error while adding book');
             }
         });
     }
 });
 
-// Toggle Add Student Form Visibility
+// Toggle Add Book Form Visibility
 function toggleForm() {
-    const addStudentPanel = document.getElementById('addStudentPanel');
-    if(addStudentPanel.style.display === 'none') {
-        addStudentPanel.style.display = 'block';
+    const addBookPanel = document.getElementById('addBookPanel');
+    if(addBookPanel.style.display === 'none') {
+        addBookPanel.style.display = 'block';
     } else {
-        addStudentPanel.style.display = 'none';
+        addBookPanel.style.display = 'none';
     }
 }
 
-// Fetch Students from Backend
-async function fetchStudents() {
+// Fetch Books from Backend
+async function fetchBooks() {
     try {
-        const response = await fetch('http://localhost:5000/api/students');
-        const students = await response.json();
+        const response = await fetch('http://localhost:5000/books');
+        const books = await response.json();
         
-        const tbody = document.getElementById('studentTableBody');
-        const countBadge = document.getElementById('studentCountBadge');
-        const totalCount = document.getElementById('totalStudentsCount');
+        const tbody = document.getElementById('bookTableBody');
+        const countBadge = document.getElementById('bookCountBadge');
+        const totalCount = document.getElementById('totalBooksCount');
         
-        if (students.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No students found.</td></tr>';
+        if (books.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No books found.</td></tr>';
             countBadge.innerText = '0';
             totalCount.innerText = '0';
             return;
         }
 
         // Update counts
-        countBadge.innerText = students.length;
+        countBadge.innerText = books.length;
         if(totalCount) {
-            animateNumber(totalCount, students.length);
+            animateNumber(totalCount, books.length);
         }
 
         tbody.innerHTML = ''; // Clear current
         
-        students.forEach(student => {
+        books.forEach(book => {
             const tr = document.createElement('tr');
             
-            const statusClass = student.status === 'Active' ? 'active' : 'pending';
+            const statusClass = book.status === 'Available' ? 'active' : 'pending';
             
             tr.innerHTML = `
-                <td>${student.name}</td>
-                <td>${student.roomNo}</td>
-                <td>${student.course}</td>
-                <td><span class="status ${statusClass}">${student.status}</span></td>
+                <td>${book.title}</td>
+                <td>${book.author}</td>
+                <td>${book.isbn}</td>
+                <td><span class="status ${statusClass}">${book.status}</span></td>
                 <td>
-                    <button class="btn-action btn-delete" onclick="deleteStudent('${student._id}')" title="Delete Student">
+                    <button class="btn-action btn-delete" onclick="deleteBook('${book._id}')" title="Delete Book">
                         <i class="fa-solid fa-trash"></i>
                     </button>
                 </td>
@@ -154,30 +157,30 @@ async function fetchStudents() {
         
     } catch (err) {
         console.error(err);
-        const tbody = document.getElementById('studentTableBody');
+        const tbody = document.getElementById('bookTableBody');
         if(tbody) {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: red;">Failed to load data from server.</td></tr>';
         }
     }
 }
 
-// Delete Student
-async function deleteStudent(id) {
-    if(!confirm('Are you sure you want to delete this student?')) return;
+// Delete Book
+async function deleteBook(id) {
+    if(!confirm('Are you sure you want to delete this book?')) return;
     
     try {
-        const response = await fetch(`http://localhost:5000/api/students/${id}`, {
+        const response = await fetch(`http://localhost:5000/books/${id}`, {
             method: 'DELETE'
         });
         
         if(response.ok) {
-            fetchStudents(); // Refresh data
+            fetchBooks(); // Refresh data
         } else {
-            alert('Failed to delete student');
+            alert('Failed to delete book');
         }
     } catch (err) {
         console.error(err);
-        alert('Server error while deleting student');
+        alert('Server error while deleting book');
     }
 }
 

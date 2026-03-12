@@ -1,30 +1,66 @@
 const mongoose = require('mongoose');
 
-// Define Schema for Student
-const studentSchema = new mongoose.Schema({
-    name: {
+const bookSchema = new mongoose.Schema({
+    title: {
         type: String,
-        required: true,
+        required: [true, 'Title is required'],
         trim: true
     },
-    roomNo: {
+    author: {
         type: String,
-        required: true,
+        required: [true, 'Author is required'],
         trim: true
     },
-    course: {
+    isbn: {
         type: String,
-        required: true,
+        required: [true, 'ISBN is required'],
+        unique: true,
         trim: true
+    },
+    genre: {
+        type: String,
+        required: [true, 'Genre is required'],
+        trim: true
+    },
+    publisher: {
+        type: String,
+        required: [true, 'Publisher is required'],
+        trim: true
+    },
+    publicationYear: {
+        type: Number
+    },
+    totalCopies: {
+        type: Number,
+        required: [true, 'Total Copies is required'],
+        min: [1, 'Total Copies must be a positive number']
+    },
+    availableCopies: {
+        type: Number
+    },
+    shelfLocation: {
+        type: String
+    },
+    bookType: {
+        type: String,
+        enum: ['Reference', 'Circulating'],
+        default: 'Circulating'
     },
     status: {
         type: String,
-        enum: ['Active', 'Pending'],
-        default: 'Active'
+        enum: ['Available', 'Checked Out'],
+        default: 'Available'
     }
 }, { timestamps: true });
 
-// Create Model
-const Student = mongoose.model('Student', studentSchema);
+// Pre-save hook to set available copies if not provided
+bookSchema.pre('save', function(next) {
+    if (this.isNew && this.availableCopies === undefined) {
+        this.availableCopies = this.totalCopies;
+    }
+    next();
+});
 
-module.exports = Student;
+const Book = mongoose.model('Book', bookSchema);
+
+module.exports = Book;

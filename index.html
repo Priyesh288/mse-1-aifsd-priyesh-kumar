@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hostel Management System - MSE 1 (Priyesh Kumar)</title>
+    <title>Library Management System - MSE 1</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <!-- FontAwesome for Icons -->
@@ -14,17 +14,17 @@
         <!-- Sidebar -->
         <nav class="sidebar">
             <div class="sidebar-header">
-                <h2><i class="fa-solid fa-hotel"></i> HostelSys</h2>
+                <h2><i class="fa-solid fa-book-open"></i> LibrarySys</h2>
                 <div class="user-info">
                     <img src="https://ui-avatars.com/api/?name=Admin&background=random" alt="User">
-                    <span>Admin User</span>
+                    <span>Librarian</span>
                 </div>
             </div>
             <ul class="nav-links">
                 <li class="active" data-tab="dashboard"><i class="fa-solid fa-house"></i> Dashboard</li>
-                <li data-tab="students"><i class="fa-solid fa-user-graduate"></i> Students</li>
-                <li data-tab="rooms"><i class="fa-solid fa-door-open"></i> Rooms</li>
-                <li data-tab="attendance"><i class="fa-solid fa-clipboard-user"></i> Attendance</li>
+                <li data-tab="books"><i class="fa-solid fa-book"></i> Books</li>
+                <li data-tab="members"><i class="fa-solid fa-users"></i> Members</li>
+                <li data-tab="issued"><i class="fa-solid fa-clipboard-list"></i> Issued Books</li>
                 <li data-tab="settings"><i class="fa-solid fa-gear"></i> Settings</li>
             </ul>
         </nav>
@@ -34,11 +34,11 @@
             <header class="top-header">
                 <div class="search-bar">
                     <i class="fa-solid fa-search"></i>
-                    <input type="text" placeholder="Search students, rooms...">
+                    <input type="text" placeholder="Search books, members...">
                 </div>
                 <div class="header-actions">
-                    <button class="icon-btn"><i class="fa-regular fa-bell"></i><span class="badge" id="studentCountBadge">0</span></button>
-                    <button class="btn-primary" onclick="toggleForm()">Add New Student</button>
+                    <button class="icon-btn"><i class="fa-regular fa-bell"></i><span class="badge" id="bookCountBadge">0</span></button>
+                    <button class="btn-primary" onclick="toggleForm()">Add New Book</button>
                 </div>
             </header>
 
@@ -47,84 +47,96 @@
                 
                 <div class="stats-grid">
                     <div class="stat-card glass-panel">
-                        <div class="stat-icon blue"><i class="fa-solid fa-users"></i></div>
+                        <div class="stat-icon blue"><i class="fa-solid fa-book"></i></div>
                         <div class="stat-details">
-                            <h3>Total Students</h3>
-                            <p class="stat-number" id="totalStudentsCount">0</p>
+                            <h3>Total Books</h3>
+                            <p class="stat-number" id="totalBooksCount">0</p>
                         </div>
                     </div>
                     <div class="stat-card glass-panel">
-                        <div class="stat-icon green"><i class="fa-solid fa-bed"></i></div>
+                        <div class="stat-icon green"><i class="fa-solid fa-users"></i></div>
                         <div class="stat-details">
-                            <h3>Available Rooms</h3>
-                            <p class="stat-number">24</p>
+                            <h3>Active Members</h3>
+                            <p class="stat-number">120</p>
                         </div>
                     </div>
                     <div class="stat-card glass-panel">
-                        <div class="stat-icon orange"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                        <div class="stat-icon orange"><i class="fa-solid fa-book-reader"></i></div>
                         <div class="stat-details">
-                            <h3>Pending Fees</h3>
-                            <p class="stat-number">12</p>
+                            <h3>Books Issued</h3>
+                            <p class="stat-number">45</p>
                         </div>
                     </div>
                     <div class="stat-card glass-panel">
                         <div class="stat-icon red"><i class="fa-solid fa-triangle-exclamation"></i></div>
                         <div class="stat-details">
-                            <h3>Complaints</h3>
-                            <p class="stat-number">5</p>
+                            <h3>Overdue</h3>
+                            <p class="stat-number">3</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="dashboard-widgets">
                     
-                    <div class="widget glass-panel form-panel" id="addStudentPanel" style="display: none; grid-column: 1 / -1; margin-bottom: 20px;">
+                    <div class="widget glass-panel form-panel" id="addBookPanel" style="display: none; grid-column: 1 / -1; margin-bottom: 20px;">
                         <div class="widget-header">
-                            <h3>Add New Student</h3>
+                            <h3>Add New Book</h3>
                             <button class="btn-text" onclick="toggleForm()"><i class="fa-solid fa-xmark"></i> Close</button>
                         </div>
-                        <form id="studentForm" class="modern-form">
+                        <form id="bookForm" class="modern-form">
                             <div class="form-group">
-                                <label>Student Name</label>
-                                <input type="text" id="name" required placeholder="Enter full name">
+                                <label>Book Title</label>
+                                <input type="text" id="title" required placeholder="Enter book title">
                             </div>
                             <div class="form-group">
-                                <label>Room Number</label>
-                                <input type="text" id="roomNo" required placeholder="e.g. 101-A">
+                                <label>Author</label>
+                                <input type="text" id="author" required placeholder="Author name">
                             </div>
                             <div class="form-group">
-                                <label>Course</label>
-                                <input type="text" id="course" required placeholder="e.g. B.Tech CSE">
+                                <label>ISBN Number</label>
+                                <input type="text" id="isbn" required placeholder="e.g. 978-3-16-148410-0">
+                            </div>
+                            <div class="form-group">
+                                <label>Genre / Category</label>
+                                <input type="text" id="genre" required placeholder="e.g. Science Fiction">
+                            </div>
+                            <div class="form-group">
+                                <label>Publisher</label>
+                                <input type="text" id="publisher" required placeholder="e.g. Penguin Books">
+                            </div>
+                            <div class="form-group">
+                                <label>Total Copies</label>
+                                <input type="number" id="totalCopies" required min="1" placeholder="e.g. 5">
                             </div>
                             <div class="form-group">
                                 <label>Status</label>
                                 <select id="status">
-                                    <option value="Active">Active</option>
-                                    <option value="Pending">Pending</option>
+                                    <option value="Available">Available</option>
+                                    <option value="Checked Out">Checked Out</option>
                                 </select>
                             </div>
                             <div class="form-actions">
-                                <button type="submit" class="btn-primary"><i class="fa-solid fa-plus"></i> Save Student</button>
+                                <button type="submit" class="btn-primary"><i class="fa-solid fa-plus"></i> Save Book</button>
                             </div>
                         </form>
                     </div>
 
                     <div class="widget glass-panel" style="grid-column: 1 / -1;">
                         <div class="widget-header">
-                            <h3>Recent Admissions</h3>
-                            <button class="btn-text" onclick="fetchStudents()"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+                            <h3>Current Inventory</h3>
+                            <button class="btn-text" onclick="fetchBooks()"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
                         </div>
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
-                                    <th>Room No</th>
-                                    <th>Course</th>
+                                    <th>Title</th>
+                                    <th>Author</th>
+                                    <th>ISBN</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="studentTableBody">
+                            <tbody id="bookTableBody">
                                 <!-- Dynamic Data will load here -->
                                 <tr><td colspan="5" style="text-align:center;">Loading...</td></tr>
                             </tbody>
@@ -133,19 +145,27 @@
             </div>
 
             <!-- Placeholder for other tabs -->
-            <div class="tab-content" id="students">
-                <h1 class="page-title">Student Directory</h1>
+            <div class="tab-content" id="books">
+                <h1 class="page-title">Book Directory</h1>
                 <div class="glass-panel" style="padding: 2rem; text-align: center;">
-                    <i class="fa-solid fa-users fa-4x" style="color: var(--primary); margin-bottom: 1rem;"></i>
-                    <p>Student list will be displayed here.</p>
+                    <i class="fa-solid fa-book fa-4x" style="color: var(--primary); margin-bottom: 1rem;"></i>
+                    <p>Complete book list will be displayed here.</p>
                 </div>
             </div>
             
-            <div class="tab-content" id="rooms">
-                <h1 class="page-title">Room Management</h1>
+            <div class="tab-content" id="members">
+                <h1 class="page-title">Member Management</h1>
                 <div class="glass-panel" style="padding: 2rem; text-align: center;">
-                    <i class="fa-solid fa-door-open fa-4x" style="color: var(--primary); margin-bottom: 1rem;"></i>
-                    <p>Room allocation details will be here.</p>
+                    <i class="fa-solid fa-users fa-4x" style="color: var(--primary); margin-bottom: 1rem;"></i>
+                    <p>Library members details will be here.</p>
+                </div>
+            </div>
+            
+             <div class="tab-content" id="issued">
+                <h1 class="page-title">Issued Books</h1>
+                <div class="glass-panel" style="padding: 2rem; text-align: center;">
+                    <i class="fa-solid fa-clipboard-list fa-4x" style="color: var(--primary); margin-bottom: 1rem;"></i>
+                    <p>Issued books records will be displayed here.</p>
                 </div>
             </div>
             
