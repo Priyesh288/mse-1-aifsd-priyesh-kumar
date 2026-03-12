@@ -6,7 +6,7 @@
 **Roll Number:** [Enter Roll Number]  
 **Section:** [Enter Section]  
 **Shift:** [Enter Shift]  
-**Case Study Name:** Hostel Management System  
+**Case Study Name:** Library Management System  
 
 ***
 
@@ -18,7 +18,7 @@
 ### 2. Render Deployment Links for all Routes
 *(Wait for final Render deployment. Replace below links when deployed)*
 - **Frontend URL:** `[Render Frontend URL]`
-- **Backend API URL:** `[Render Backend URL]/api/students`
+- **Backend API URL:** `[Render Backend URL]/books`
 
 ***
 
@@ -30,121 +30,123 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const Student = require('./model');
+const Book = require('./model');
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// In-Memory Fallback if MongoDB is not running locally
-let useMongoDB = false;
-let fallbackDb = [
-    { _id: '1', name: 'Rahul Sharma', roomNo: '101-A', course: 'B.Tech CSE', status: 'Active', createdAt: new Date() },
-    { _id: '2', name: 'Aman Verma', roomNo: '205-B', course: 'B.Tech ECE', status: 'Active', createdAt: new Date() }
-];
+mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 5000 })
+.then(() => console.log('✅ Connected to MongoDB database'))
+.catch((err) => console.log('⚠️ MongoDB connection error:', err.message));
 
-// Database Connection
-mongoose.connect(process.env.MONGODB_URI, { 
-    serverSelectionTimeoutMS: 3000 // 3 seconds timeout
-})
-    .then(() => {
-        console.log('✅ Connected to MongoDB database (hostelsys)');
-        useMongoDB = true;
-    })
-    .catch((err) => {
-        console.log('⚠️ MongoDB not detected running locally. Using in-memory array for demo purposes so it works instantly.');
-    });
-
-// Get all students (Read)
-app.get('/api/students', async (req, res) => {
+app.get('/books/search', async (req, res, next) => {
     try {
-        if (useMongoDB) {
-            const students = await Student.find().sort({ createdAt: -1 });
-            return res.status(200).json(students);
-        } else {
-            return res.status(200).json(fallbackDb.sort((a,b) => b.createdAt - a.createdAt));
-        }
+        const titleQuery = req.query.title;
+        if (!titleQuery) return res.status(400).json({ error: 'Search query "title" is required' });
+        
+        const books = await Book.find({
+            $or: [
+                { title: { $regex: titleQuery, $options: 'i' } },
+                { author: { $regex: titleQuery, $options: 'i' } }
+            ]
+        });
+        return res.status(200).json(books);
+    } catch (err) { next(err); }
+});
+
+app.post('/books', async (req, res, next) => {
+    try {
+        const newBook = new Book(req.body);
+        const savedBook = await newBook.save();
+        return res.status(201).json(savedBook);
     } catch (err) {
-        res.status(500).json({ error: 'Failed to fetch students', details: err.message });
+        if (err.name === 'ValidationError') return res.status(400).json({ error: 'Bad Request', details: err.message });
+        if (err.code === 11000) return res.status(400).json({ error: 'Bad Request', details: 'ISBN must be unique' });
+        next(err);
     }
 });
 
-// Add a new student (Create)
-app.post('/api/students', async (req, res) => {
+app.get('/books', async (req, res, next) => {
     try {
-        const { name, roomNo, course, status } = req.body;
-        if (!name || !roomNo || !course) return res.status(400).json({ error: 'Name, Room No, and Course are required fields.' });
+        const books = await Book.find().sort({ createdAt: -1 });
+        return res.status(200).json(books);
+    } catch (err) { next(err); }
+});
 
-        if (useMongoDB) {
-            const newStudent = new Student({ name, roomNo, course, status: status || 'Active' });
-            const savedStudent = await newStudent.save();
-            return res.status(201).json(savedStudent);
-        } else {
-            const newStudent = { _id: Date.now().toString(), name, roomNo, course, status: status || 'Active', createdAt: new Date() };
-            fallbackDb.push(newStudent);
-            return res.status(201).json(newStudent);
-        }
+app.get('/books/:id', async (req, res, next) => {
+    try {
+        const book = await Book.findById(req.params.id);
+        if (!book) return res.status(404).json({ error: 'Not Found: Book does not exist' });
+        return res.status(200).json(book);
     } catch (err) {
-        res.status(500).json({ error: 'Failed to add student', details: err.message });
+        if (err.name === 'CastError') return res.status(400).json({ error: 'Bad Request: Invalid Book ID format' });
+        next(err);
     }
 });
 
-// Delete a student (Delete)
-app.delete('/api/students/:id', async (req, res) => {
+app.put('/books/:id', async (req, res, next) => {
     try {
-        const studentId = req.params.id;
-        if (useMongoDB) {
-            const deletedStudent = await Student.findByIdAndDelete(studentId);
-            if (!deletedStudent) return res.status(404).json({ error: 'Student not found.' });
-        } else {
-            const initialLength = fallbackDb.length;
-            fallbackDb = fallbackDb.filter(s => s._id !== studentId);
-            if (fallbackDb.length === initialLength) return res.status(404).json({ error: 'Student not found.' });
-        }
-        res.status(200).json({ message: 'Student deleted successfully.', id: studentId });
+        const updatedBook = await Book.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+        if (!updatedBook) return res.status(404).json({ error: 'Not Found: Book does not exist' });
+        return res.status(200).json(updatedBook);
     } catch (err) {
-        res.status(500).json({ error: 'Failed to delete student', details: err.message });
+        if (err.name === 'ValidationError' || err.name === 'CastError') return res.status(400).json({ error: 'Bad Request', details: err.message });
+        next(err);
     }
 });
+
+app.delete('/books/:id', async (req, res, next) => {
+    try {
+        const deletedBook = await Book.findByIdAndDelete(req.params.id);
+        if (!deletedBook) return res.status(404).json({ error: 'Not Found: Book does not exist' });
+        return res.status(200).json({ message: 'Success: Book deleted', id: req.params.id });
+    } catch (err) {
+        if (err.name === 'CastError') return res.status(400).json({ error: 'Bad Request: Invalid Book ID format' });
+        next(err);
+    }
+});
+
+app.use((err, req, res, next) => res.status(500).json({ error: 'Server Error', details: err.message }));
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 API Server running on http://localhost:${PORT}`));
-```
-
-#### • `.git`
-*(The `.git` folder contains version control history. Below is the list of internal Git structure files generated automatically by Git init.)*
-```
-.git/
-├── HEAD
-├── config
-├── description
-├── hooks/
-├── info/
-├── objects/
-└── refs/
+app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
 ```
 
 #### • `.env`
 ```env
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/hostelsys
+MONGODB_URI=mongodb://localhost:27017/librarysys
 ```
 
-#### • `model.js` (Extra added for clarity)
+#### • `model.js`
 ```javascript
 const mongoose = require('mongoose');
 
-const studentSchema = new mongoose.Schema({
-    name: { type: String, required: true, trim: true },
-    roomNo: { type: String, required: true, trim: true },
-    course: { type: String, required: true, trim: true },
-    status: { type: String, enum: ['Active', 'Pending'], default: 'Active' }
+const bookSchema = new mongoose.Schema({
+    title: { type: String, required: [true, 'Title is required'], trim: true },
+    author: { type: String, required: [true, 'Author is required'], trim: true },
+    isbn: { type: String, required: [true, 'ISBN is required'], unique: true, trim: true },
+    genre: { type: String, required: [true, 'Genre is required'], trim: true },
+    publisher: { type: String, required: [true, 'Publisher is required'], trim: true },
+    publicationYear: { type: Number },
+    totalCopies: { type: Number, required: [true, 'Total Copies is required'], min: [1, 'Total Copies must be a positive number'] },
+    availableCopies: { type: Number },
+    shelfLocation: { type: String },
+    bookType: { type: String, enum: ['Reference', 'Circulating'], default: 'Circulating' },
+    status: { type: String, enum: ['Available', 'Checked Out'], default: 'Available' }
 }, { timestamps: true });
 
-const Student = mongoose.model('Student', studentSchema);
-module.exports = Student;
+bookSchema.pre('save', function(next) {
+    if (this.isNew && this.availableCopies === undefined) {
+        this.availableCopies = this.totalCopies;
+    }
+    next();
+});
+
+const Book = mongoose.model('Book', bookSchema);
+module.exports = Book;
 ```
 
 ***

@@ -1,6 +1,6 @@
-# Hostel Management System (MSE 1)
+# Library Management System (MSE 1)
 
-**A modern, responsive, and dynamic Hostel Management Dashboard.**
+**A modern, responsive, and dynamic Library Management Dashboard.**
 
 This project was built as part of an academic requirement (MSE 1) to demonstrate full-stack web development integration using HTML, CSS, JavaScript, Node.js, Express, and MongoDB.
 
@@ -10,7 +10,7 @@ This project was built as part of an academic requirement (MSE 1) to demonstrate
 - **RESTful API Backend**: A Node.js and Express backend handling full CRUD operations.
 - **Database Integration**: Mongoose Schema defined for MongoDB.
 - **Zero-Config Fallback**: If a local MongoDB instance is not running on port `27017`, the Node server automatically falls back to an **In-Memory Array**, allowing instant plug-and-play testing without database configuration errors.
-- **Dynamic Frontend Rendering**: Fetch API used to seamlessly load, add, and delete student data without page reloads.
+- **Dynamic Frontend Rendering**: Fetch API used to seamlessly load, add, and delete book data without page reloads.
 
 ## 🛠️ Technology Stack
 
